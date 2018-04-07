@@ -125,8 +125,19 @@ minetest.register_on_receiving_chat_messages(function(msg)
           return true
         end
     elseif m:sub(1, 1) == '<' then
-        minetest.display_chat_message('-' .. main_channel .. '- ' .. msg)
-        return true
+        local hijack = false
+        if channel == main_channel then
+            for _ in pairs(channels) do
+                hijack = true
+                break
+            end
+        else
+            hijack = true
+        end
+        if hijack then
+            minetest.display_chat_message('-' .. main_channel .. '- ' .. msg)
+            return true
+        end
     elseif m:match('^PM from [^\\- ]*: -[^ ]*- ') then
         local s, e = msg:find('-[^ ]*- ')
         if not s then return end
