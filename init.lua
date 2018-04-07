@@ -84,7 +84,7 @@ minetest.register_on_sending_chat_messages(function(msg)
             c = msg:sub(1, s - 1)
             msg = msg:sub(s + 1)
         else
-            if cmdprefix == '@' or channels[msg:sub(2)] or msg == main_channel
+            if cmdprefix ~= '#' or channels[msg:sub(2)] or msg == main_channel
               then
                 channel = msg
                 if channel == main_channel then 
@@ -109,6 +109,9 @@ minetest.register_on_sending_chat_messages(function(msg)
     end
     if c == '@' then
         minetest.display_chat_message('-!- <' .. localplayer .. '> ' .. msg)
+        return true
+    elseif c == '@[off]' then
+        minetest.send_chat_message('[off] ' .. msg)
         return true
     end
     local players = get_channel_users(c)
@@ -146,7 +149,15 @@ minetest.register_on_receiving_chat_messages(function(msg)
             hijack = true
         end
         if hijack then
-            minetest.display_chat_message('-' .. main_channel .. '- ' .. msg)
+            if m:match('^<[^>]*> %[off%]') then
+                local s, e   = m:find('[off]')
+                local sender = m:sub(1, s - 2)
+                local text   = m:sub(s + 5)
+                minetest.display_chat_message('-[off]- ' .. sender .. text)
+            else
+                minetest.display_chat_message('-' .. main_channel .. '- '
+                    .. msg)
+            end
             return true
         end
     elseif m:match('^PM from [^\\- ]*: -[^ ]*- ') then
@@ -278,7 +289,7 @@ minetest.register_chatcommand('toggle_' .. main_channel:sub(2), {
             show_main_channel = true
             return true, "You will now start to receive messages from "
                 .. main_channel .. "."
-        elseif channel == main_channel then
+        elseif channel == main_channel or channel == '@[off]' then
             return false, "You are currently in " .. main_channel
                 .. "! Please change channels first."
         else

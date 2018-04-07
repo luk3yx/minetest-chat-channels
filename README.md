@@ -19,6 +19,11 @@ The following channel prefixes exist:
    same name, the message will display as a chat message in the channel.
    Otherwise, it will display as a PM prefixed in `-#channel-`.
 
+The following special channels exist:
+
+ - `#main`: Normal chat without the CSM.
+ - `@[off]`: Prefixes messages with `[off]`, displayed in chat as `[off]`.
+
 ## Added commands
 
  - `.add_to_channel <victim> [channel]`: Adds `<victim>` to the channel. If
