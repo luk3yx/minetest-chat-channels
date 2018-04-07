@@ -251,6 +251,7 @@ minetest.register_chatcommand('who', {
             return false, "The channel must start with a #."
         end
         c = c:sub(2)
+        local players
         if c == main_channel:sub(2) then
             players = minetest.get_player_names()
         elseif channels[c] then
