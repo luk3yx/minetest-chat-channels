@@ -107,6 +107,10 @@ minetest.register_on_sending_chat_messages(function(msg)
             return true
         end
     end
+    if c == '@' then
+        minetest.display_chat_message('-!- <' .. localplayer .. '> ' .. msg)
+        return true
+    end
     local players = get_channel_users(c)
     if not players then return end
     table.insert(buffer, '-' .. c .. '- <' .. localplayer .. '> ' .. msg)
@@ -179,7 +183,8 @@ minetest.register_chatcommand('add_to_channel', {
             c = channel
             if v:find(' ') then v = '' end
         end
-        if v == '' or c == '' or c:find(' ') or c:sub(1, 1) ~= '#' then
+        if v == '' or c == '' or c:find(' ') or c:sub(1, 1) ~= '#' or c == '#'
+          then
             return false, "Invalid syntax! Usage: .add_to_channel <victim> [channel]"
         elseif c == main_channel then
             return false, "You cannot add users to the main channel!"
