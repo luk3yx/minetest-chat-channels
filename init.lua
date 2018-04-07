@@ -17,6 +17,8 @@ if storage:get_string('channels') then
     channels = loadstring(storage:get_string('channels'))()
 end
 
+if not channels then channels = {} end
+
 minetest.register_on_connect(function()
     localplayer = minetest.localplayer:get_name()
 end)
