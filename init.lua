@@ -12,6 +12,7 @@ local messages_sent = 0
 local buffer = {}
 local msgprefix
 local localplayer = '[you]'
+local show_main_channel = true
 
 if storage:get_string('channels') then
     channels = loadstring(storage:get_string('channels'))()
@@ -59,12 +60,14 @@ local get_channel_users = function(c)
             if u then
                 channels[name] = false
             end
+            show_main_channel = true
             channel = main_channel
             return false
         end
     elseif prefix == '@' then
         return {name}
     else
+        show_main_channel = true
         channel = main_channel
         return false
     end
@@ -84,6 +87,9 @@ minetest.register_on_sending_chat_messages(function(msg)
             if cmdprefix == '@' or channels[msg:sub(2)] or msg == main_channel
               then
                 channel = msg
+                if channel == main_channel then 
+                    show_main_channel = true
+                end
                 minetest.display_chat_message('You have changed chat channels to '
                     .. channel)
                 return true
@@ -92,6 +98,7 @@ minetest.register_on_sending_chat_messages(function(msg)
             msg = ''
         end
         if c == main_channel then
+            show_main_channel = true
             minetest.send_chat_message(msg)
             return true
         elseif cmdprefix == '#' and not channels[c:sub(2)] then
@@ -124,6 +131,7 @@ minetest.register_on_receiving_chat_messages(function(msg)
           return true
         end
     elseif m:sub(1, 1) == '<' then
+        if not show_main_channel then return true end
         local hijack = false
         if channel == main_channel then
             for _ in pairs(channels) do
@@ -251,6 +259,26 @@ minetest.register_chatcommand('delete_channel', {
         channels[c] = nil
         save()
         return true, "Channel #" .. c .. " is no longer."
+    end
+})
+
+minetest.register_chatcommand('toggle_' .. main_channel:sub(2), {
+    params = "",
+    description = "Toggle between showing and hiding messages from "
+        .. main_channel .. ".",
+    func = function(c)
+        if not show_main_channel then
+            show_main_channel = true
+            return true, "You will now start to receive messages from "
+                .. main_channel .. "."
+        elseif channel == main_channel then
+            return false, "You are currently in " .. main_channel
+                .. "! Please change channels first."
+        else
+            show_main_channel = false
+            return true, "You will no longer receive messages from "
+                .. main_channel .. "."
+        end
     end
 })
 
