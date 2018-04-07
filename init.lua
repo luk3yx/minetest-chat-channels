@@ -148,6 +148,8 @@ minetest.register_on_receiving_chat_messages(function(msg)
     elseif m:match('^PM from [^\\- ]*: -[^ ]*- ') then
         local s, e = msg:find('-[^ ]*- ')
         if not s then return end
+        local prefix = msg:sub(s + 1, s + 1)
+        if prefix ~= '#' then return end
         local chan = msg:sub(s + 2, e - 2)
         local text = msg:sub(e + 1)
         local user = m:sub(9)
