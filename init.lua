@@ -104,7 +104,6 @@ minetest.register_on_sending_chat_messages(function(msg)
     if not players then return end
     table.insert(buffer, '-' .. c .. '- <' .. localplayer .. '> ' .. msg)
     messages_sent = messages_sent + #players
-    local remove_local = false
     for p = 1, #players do
         minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
             '- ' .. msg)
