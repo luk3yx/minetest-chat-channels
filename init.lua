@@ -9,7 +9,7 @@ local channel = main_channel
 local storage = minetest.get_mod_storage()
 local channels = {}
 local messages_sent = 0
-local buffer = {}
+local buffer = ''
 local msgprefix
 local localplayer = '[you]'
 local show_main_channel = true
@@ -116,7 +116,8 @@ minetest.register_on_sending_chat_messages(function(msg)
     end
     local players = get_channel_users(c)
     if not players then return end
-    table.insert(buffer, '-' .. c .. '- <' .. localplayer .. '> ' .. msg)
+    if #buffer > 0 then buffer = buffer .. '\n' end
+    buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
     messages_sent = messages_sent + #players
     for p = 1, #players do
         minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
@@ -132,8 +133,8 @@ minetest.register_on_receiving_chat_messages(function(msg)
         if messages_sent > 0 then
           messages_sent = messages_sent - 1
           if messages_sent == 0 and #buffer > 0 then
-              minetest.display_chat_message(buffer[1])
-              table.remove(buffer, 1)
+              minetest.display_chat_message(buffer)
+              buffer = ''
           end
           return true
         end
