@@ -8,6 +8,7 @@ local main_channel = '#main'
 local channel = main_channel
 local storage = minetest.get_mod_storage()
 local channels = {}
+local connected_players = {}
 local messages_sent = 0
 local buffer = ''
 local msgprefix
@@ -86,6 +87,21 @@ minetest.register_on_sending_chat_messages(function(msg)
         else
             if cmdprefix ~= '#' or channels[msg:sub(2)] or msg == main_channel
               then
+                local players = get_channel_users(msg)
+                if players then
+                    local empty = true
+                    for p = 1, #players do
+                        if connected_players[players[p]] then
+                            empty = false
+                            break
+                        end
+                    end
+                    if empty then
+                        minetest.display_chat_message('The channel ' .. msg ..
+                            ' is empty.')
+                        return true
+                    end
+                end
                 channel = msg
                 if channel == main_channel then 
                     show_main_channel = true
@@ -120,8 +136,11 @@ minetest.register_on_sending_chat_messages(function(msg)
     buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
     messages_sent = messages_sent + #players
     for p = 1, #players do
-        minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
-            '- ' .. msg)
+        if connected_players[players[p]] then
+            messages_sent = messages_sent + 1
+            minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
+                '- ' .. msg)
+        end
     end
     return true
 end)
@@ -176,6 +195,27 @@ minetest.register_on_receiving_chat_messages(function(msg)
             minetest.display_chat_message('-#' .. chan .. '- <' .. user ..
                 '> ' .. text)
             return true
+        end
+    elseif m:match('^%*%*%* [^ ]* joined the game.$') then
+        local s, e = m:find(' ')
+        local victim = m:sub(s + 1)
+        local s, e = victim:find(' ')
+        local victim = victim:sub(1, s - 1)
+        connected_players[victim] = true
+    elseif m:match('^%*%*%* [^ ]* left the game') then
+        local s, e = m:find(' ')
+        local victim = m:sub(s + 1)
+        local s, e = victim:find(' ')
+        local victim = victim:sub(1, s - 1)
+        connected_players[victim] = nil
+    elseif m:match('^# Server: version=[^{]+, clients={[^}]*}$') then
+        local s, e = m:find('{')
+        local list = m:sub(s + 1, #m - 1)
+        connected_players = {}
+        for player in string.gmatch(list, "[^(, )]*") do
+            if #player > 0 then
+                connected_players[player] = true
+            end
         end
     end
 end)
@@ -312,7 +352,10 @@ minetest.register_chatcommand('who', {
         c = c:sub(2)
         local players
         if c == main_channel:sub(2) then
-            players = minetest.get_player_names()
+            players = {}
+            for player, _ in pairs(connected_players) do
+                table.insert(players, player)
+            end
         elseif channels[c] then
             local u = table.unpack or unpack
             players = {localplayer,
@@ -323,5 +366,18 @@ minetest.register_chatcommand('who', {
         table.sort(players)
         players = table.concat(players, ', ')
         return true, "List of players in #" .. c .. ": " .. players
+    end
+})
+
+-- Override .list_players to make it display all players, not just players
+--   visible to the client.
+minetest.override_chatcommand('list_players', {
+    func = function()
+        local p = {}
+        for player, _ in pairs(connected_players) do
+            table.insert(p, player)
+        end
+        table.sort(p)
+        return true, "Online players: " .. table.concat(p, ', ')
     end
 })
