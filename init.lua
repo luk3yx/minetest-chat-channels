@@ -24,6 +24,15 @@ minetest.register_on_connect(function()
     localplayer = minetest.localplayer:get_name()
 end)
 
+local player_exists = function(victim)
+    for _, player in ipairs(minetest.get_player_names()) do
+        if player == victim then
+            return true
+        end
+    end
+    return false
+end
+
 local player_in_channel = function(v, c)
     local in_channel = false
     if not c then c = channel end
@@ -86,8 +95,23 @@ minetest.register_on_sending_chat_messages(function(msg)
         else
             if cmdprefix ~= '#' or channels[msg:sub(2)] or msg == main_channel
               then
+                local players = get_channel_users(msg)
+                if players then
+                    local empty = true
+                    for p = 1, #players do
+                        if player_exists(players[p]) then
+                            empty = false
+                            break
+                        end
+                    end
+                    if empty then
+                        minetest.display_chat_message('The channel ' .. msg ..
+                            ' is empty.')
+                        return true
+                    end
+                end
                 channel = msg
-                if channel == main_channel then 
+                if channel == main_channel or channel == '@[off]' then 
                     show_main_channel = true
                 end
                 minetest.display_chat_message('You have changed chat channels to '
@@ -116,12 +140,21 @@ minetest.register_on_sending_chat_messages(function(msg)
     end
     local players = get_channel_users(c)
     if not players then return end
-    if #buffer > 0 then buffer = buffer .. '\n' end
-    buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
-    messages_sent = messages_sent + #players
     for p = 1, #players do
-        minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
-            '- ' .. msg)
+        if player_exists(players[p]) then
+            messages_sent = messages_sent + 1
+            minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
+                '- ' .. msg)
+        end
+    end
+    if messages_sent > 0 then
+        if #buffer > 0 then buffer = buffer .. '\n' end
+        buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
+    else
+        if channel == c then
+            channel = '@'
+        end
+        minetest.display_chat_message('The channel ' .. c .. ' is empty.')
     end
     return true
 end)
