@@ -10,6 +10,7 @@ local storage = minetest.get_mod_storage()
 local channels = {}
 local connected_players = {}
 local messages_sent = 0
+local status_sent = 0
 local buffer = ''
 local msgprefix
 local localplayer = '[you]'
@@ -66,6 +67,7 @@ local get_channel_users = function(c)
             return false
         end
     elseif prefix == '@' then
+        if not connected_players[name] then return {} end
         return {name}
     else
         show_main_channel = true
@@ -114,9 +116,11 @@ minetest.register_on_sending_chat_messages(function(msg)
             msg = ''
         end
         if c == main_channel then
-            show_main_channel = true
-            minetest.send_chat_message(msg)
-            return true
+            if connected_players[localplayer] then
+                show_main_channel = true
+                minetest.send_chat_message(msg)
+                return true
+            end
         elseif cmdprefix == '#' and not channels[c:sub(2)] then
             minetest.display_chat_message('The channel ' .. c ..
                 ' was not found.')
@@ -126,21 +130,33 @@ minetest.register_on_sending_chat_messages(function(msg)
     if c == '@' then
         minetest.display_chat_message('-!- <' .. localplayer .. '> ' .. msg)
         return true
+    elseif not connected_players[localplayer] then
+        minetest.display_chat_message('You cannot use chat while cloaked. '
+            .. 'Please use /uncloak if you want to use chat.')
+        minetest.run_server_chatcommand('status', '')
+        status_sent = status_sent + 1
+        return true
     elseif c == '@[off]' then
         minetest.send_chat_message('[off] ' .. msg)
         return true
     end
     local players = get_channel_users(c)
     if not players then return end
-    if #buffer > 0 then buffer = buffer .. '\n' end
-    buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
-    messages_sent = messages_sent + #players
     for p = 1, #players do
         if connected_players[players[p]] then
             messages_sent = messages_sent + 1
             minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
                 '- ' .. msg)
         end
+    end
+    
+    if messages_sent > 0 then
+        if #buffer > 0 then buffer = buffer .. '\n' end
+        buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
+    else
+        if channel == c then channel = '@' end
+        minetest.display_chat_message('The channel ' .. c ..
+            ' is empty.')
     end
     return true
 end)
@@ -216,6 +232,10 @@ minetest.register_on_receiving_chat_messages(function(msg)
             if #player > 0 then
                 connected_players[player] = true
             end
+        end
+        if status_sent > 0 then
+            status_sent = status_sent - 1
+            return true
         end
     end
 end)
@@ -352,9 +372,11 @@ minetest.register_chatcommand('who', {
         c = c:sub(2)
         local players
         if c == main_channel:sub(2) then
-            players = {}
+            players = {localplayer}
             for player, _ in pairs(connected_players) do
-                table.insert(players, player)
+                if player ~= localplayer and _ then
+                    table.insert(players, player)
+                end
             end
         elseif channels[c] then
             local u = table.unpack or unpack
@@ -373,9 +395,11 @@ minetest.register_chatcommand('who', {
 --   visible to the client.
 minetest.override_chatcommand('list_players', {
     func = function()
-        local p = {}
+        local p = {localplayer}
         for player, _ in pairs(connected_players) do
-            table.insert(p, player)
+            if player ~= localplayer and _ then
+                table.insert(p, player)
+            end
         end
         table.sort(p)
         return true, "Online players: " .. table.concat(p, ', ')
