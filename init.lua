@@ -24,6 +24,9 @@ if not channels then channels = {} end
 
 minetest.register_on_connect(function()
     localplayer = minetest.localplayer:get_name()
+    if localplayer == 'singleplayer' then
+        connected_players[localplayer] = true
+    end
 end)
 
 local player_in_channel = function(v, c)
@@ -388,6 +391,35 @@ minetest.register_chatcommand('who', {
         table.sort(players)
         players = table.concat(players, ', ')
         return true, "List of players in #" .. c .. ": " .. players
+    end
+})
+
+minetest.register_chatcommand('coords', {
+    params = "[channel]",
+    description = "Send your co-ordinates to chat.",
+    func = function(c)
+        if c == '' then c = channel end
+        local pos = minetest.localplayer:get_pos()
+        local x = math.floor(pos.x)
+        local y = math.floor(pos.y)
+        local z = math.floor(pos.z)
+        local msg = "Current Position: " .. x .. ", " .. y .. ", " .. z .. "."
+        if c == main_channel then
+            minetest.send_chat_message(msg)
+            return
+        end
+        local players = get_channel_users(c)
+        if not players then return false, "The channel does not exist!" end
+        for p = 1, #players do
+            if connected_players[players[p]] then
+                messages_sent = messages_sent + 1
+                minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
+                    '- ' .. msg)
+            end
+        end
+        if messages_sent == 0 then
+            return false, "The channel is empty!"
+        end
     end
 })
 
