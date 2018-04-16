@@ -106,7 +106,7 @@ chat_channels.send_message = function(msg, c)
         show_main_channel = true
         minetest.send_chat_message('[off] ' .. msg)
         return true, 'Message sent!'
-    elseif prefix == '#' and not channels[prefix:sub(2)] then
+    elseif prefix == '#' and not channels[c:sub(2)] then
         if c == channel then channel = '@' end
         return false, 'The channel ' .. c .. ' does not exist!'
     end
