@@ -12,7 +12,6 @@ local connected_players = {}
 local messages_sent = 0
 local status_sent = 0
 local buffer = ''
-local msgprefix
 local localplayer = '[you]'
 local show_main_channel = true
 local strip_colours
@@ -447,20 +446,27 @@ minetest.register_chatcommand('coords', {
     end
 })
 
-minetest.register_chatcommand('strip_colours', {
-    params = "",
-    description = "Toggles the stripping of coloured chat.",
-    func = function(c)
-        if strip_colours then
-            strip_colours = false
-        else
-            strip_colours = true
+-- Get unique namespace for strip_colours def.
+if true then
+    local def = {
+        params = "",
+        description = "Toggles the stripping of coloured chat.",
+        func = function(c)
+            if strip_colours then
+                strip_colours = false
+            else
+                strip_colours = true
+            end
+            storage:set_string("strip_colours", strip_colours and "yes" or "")
+            return true, "Done! Colours are " .. (strip_colours and "now" or
+                "no longer") .. " being stripped from chat messages."
         end
-        storage:set_string("strip_colours", strip_colours and "yes" or "")
-        return true, "Done! Colours are " .. (strip_colours and "now" or "not")
-            .. " being stripped from chat messages."
-    end
-})
+    }
+
+    minetest.register_chatcommand('strip_colours', def)
+
+    minetest.register_chatcommand('strip_colors',  def)
+end
 
 -- Override .list_players to make it display all players, not just players
 --   visible to the client.

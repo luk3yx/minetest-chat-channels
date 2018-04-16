@@ -28,10 +28,12 @@ The following special channels exist:
 
  - `.add_to_channel <victim> [channel]`: Adds `<victim>` to the channel. If
    `[channel]` is not specified, the current channel will be used instead.
+ - `.coords [channel]`: Sends your current co-ordinates to chat.
  - `.delete_channel <channel>`: Deletes a channel.
  - `.list_channels`: Displays a list of channels.
  - `.toggle_main`: Toggles between showing and hiding messages from #main.
  - `.remove_from_channel <victim> [channel]`: The same as `.add_to_channel`,
    except removes users instead.
+ - `.strip_colours`: Toggles the stripping of colours from chat.
  - `.who [channel]`: Displays a list of users in the channel. If `[channel]` is
    not specified, the current channel will be used.
