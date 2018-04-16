@@ -15,6 +15,13 @@ local buffer = ''
 local msgprefix
 local localplayer = '[you]'
 local show_main_channel = true
+local strip_colours
+if storage:get_string('strip_colours') == 'yes' then
+    strip_colours = true
+else
+    strip_colours = false
+end
+chat_channels = {}
 
 if storage:get_string('channels') then
     channels = loadstring(storage:get_string('channels'))()
@@ -29,7 +36,7 @@ minetest.register_on_connect(function()
     end
 end)
 
-local player_in_channel = function(v, c)
+chat_channels.player_in_channel = function(v, c)
     local in_channel = false
     if not c then c = channel end
     if channels[c] then
@@ -47,7 +54,7 @@ local save = function()
     storage:set_string('channels', minetest.serialize(channels))
 end
 
-local get_channel_users = function(c)
+chat_channels.get_channel_users = function(c)
     if not c then c = channel end
     if c == main_channel then return false end
     local prefix = c:sub(1, 1)
@@ -55,7 +62,7 @@ local get_channel_users = function(c)
     if prefix == '#' then
         local u = channels[name]
         if u and #u > 0 then
-            local i = player_in_channel(localplayer, name)
+            local i = chat_channels.player_in_channel(localplayer, name)
             if i then
                 table.remove(channels[name], i)
                 save()
@@ -79,6 +86,51 @@ local get_channel_users = function(c)
     end
 end
 
+chat_channels.send_message = function(msg, c)
+    if not c or c == '' then c = channel end
+    prefix = c:sub(1, 1)
+    if prefix ~= '#' and prefix ~= '@' then
+        return false, 'Channels must start in either # or @.'
+    elseif c == main_channel then
+        show_main_channel = true
+        minetest.send_chat_message(msg)
+        return true, 'Message sent!'
+    elseif c == '@' then
+        minetest.display_chat_message('-!- <' .. localplayer .. '> ' .. msg)
+        return true, 'Message sent!'
+    elseif not connected_players[localplayer] then
+        minetest.run_server_chatcommand('status', '')
+        status_sent = status_sent + 1
+        return false, 'You cannot use chat while cloaked. '
+            .. 'Please use /uncloak if you want to use chat.'
+    elseif c == '@[off]' then
+        show_main_channel = true
+        minetest.send_chat_message('[off] ' .. msg)
+        return true, 'Message sent!'
+    elseif prefix == '#' and not channels[prefix:sub(2)] then
+        if c == channel then channel = '@' end
+        return false, 'The channel ' .. c .. ' does not exist!'
+    end
+    local players = chat_channels.get_channel_users(c)
+    if not players then return end
+    for p = 1, #players do
+        if connected_players[players[p]] then
+            messages_sent = messages_sent + 1
+            minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
+                '- ' .. msg)
+        end
+    end
+    
+    if messages_sent > 0 then
+        if #buffer > 0 then buffer = buffer .. '\n' end
+        buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
+    else
+        if channel == c then channel = '@' end
+        return false, 'The channel ' .. c .. ' is empty.'
+    end
+    return true, 'Message sent!'
+end
+
 minetest.register_on_sending_chat_messages(function(msg)
     local cmdprefix = msg:sub(1, 1)
     local c = channel
@@ -92,7 +144,7 @@ minetest.register_on_sending_chat_messages(function(msg)
         else
             if cmdprefix ~= '#' or channels[msg:sub(2)] or msg == main_channel
               then
-                local players = get_channel_users(msg)
+                local players = chat_channels.get_channel_users(msg)
                 if players then
                     local empty = true
                     for p = 1, #players do
@@ -130,42 +182,26 @@ minetest.register_on_sending_chat_messages(function(msg)
             return true
         end
     end
-    if c == '@' then
-        minetest.display_chat_message('-!- <' .. localplayer .. '> ' .. msg)
-        return true
-    elseif not connected_players[localplayer] then
-        minetest.display_chat_message('You cannot use chat while cloaked. '
-            .. 'Please use /uncloak if you want to use chat.')
-        minetest.run_server_chatcommand('status', '')
-        status_sent = status_sent + 1
-        return true
-    elseif c == '@[off]' then
-        minetest.send_chat_message('[off] ' .. msg)
-        return true
+    if c == main_channel and connected_players[localplayer] then
+        return
     end
-    local players = get_channel_users(c)
-    if not players then return end
-    for p = 1, #players do
-        if connected_players[players[p]] then
-            messages_sent = messages_sent + 1
-            minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
-                '- ' .. msg)
-        end
-    end
-    
-    if messages_sent > 0 then
-        if #buffer > 0 then buffer = buffer .. '\n' end
-        buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
-    else
-        if channel == c then channel = '@' end
-        minetest.display_chat_message('The channel ' .. c ..
-            ' is empty.')
+    local s, n = chat_channels.send_message(msg, c)
+    if not s then
+        minetest.display_chat_message(n)
     end
     return true
 end)
 
+chat_channels.display_without_colours = function(msg)
+    if strip_colours then
+        minetest.display_chat_message(msg)
+        return true
+    end
+end
+
 minetest.register_on_receiving_chat_messages(function(msg)
     local m = minetest.strip_colors(msg)
+    if strip_colours then msg = m end
     if m == 'Message sent.' or m:match('^The player .* is not online.$')
       then
         if messages_sent > 0 then
@@ -201,16 +237,18 @@ minetest.register_on_receiving_chat_messages(function(msg)
         end
     elseif m:match('^PM from [^\\- ]*: -[^ ]*- ') then
         local s, e = msg:find('-[^ ]*- ')
-        if not s then return end
+        if not s then return chat_channels.display_without_colours(msg) end
         local prefix = msg:sub(s + 1, s + 1)
-        if prefix ~= '#' then return end
+        if prefix ~= '#' then
+            return chat_channels.display_without_colours(msg)
+        end
         local chan = msg:sub(s + 2, e - 2)
         local text = msg:sub(e + 1)
         local user = m:sub(9)
         local s, e = user:find(': ')
         local user = user:sub(1, s - 1)
         
-        if player_in_channel(user, chan) then
+        if chat_channels.player_in_channel(user, chan) then
             minetest.display_chat_message('-#' .. chan .. '- <' .. user ..
                 '> ' .. text)
             return true
@@ -241,6 +279,8 @@ minetest.register_on_receiving_chat_messages(function(msg)
             return true
         end
     end
+    
+    return chat_channels.display_without_colours(msg)
 end)
 
 minetest.register_chatcommand('add_to_channel', {
@@ -268,7 +308,7 @@ minetest.register_chatcommand('add_to_channel', {
         end
         c = c:sub(2)
         if channels[c] then
-            if player_in_channel(v, c) then
+            if chat_channels.player_in_channel(v, c) then
                 return true, "That player is already in the channel!"
             end
         else
@@ -303,7 +343,7 @@ minetest.register_chatcommand('remove_from_channel', {
             return false, "You cannot remove yourself from a channel!"
         end
         c = c:sub(2)
-        local in_channel = player_in_channel(v, c)
+        local in_channel = chat_channels.player_in_channel(v, c)
         if in_channel then
             table.remove(channels[c], in_channel)
             if #channels[c] < 1 then channels[c] = nil end
@@ -398,28 +438,27 @@ minetest.register_chatcommand('coords', {
     params = "[channel]",
     description = "Send your co-ordinates to chat.",
     func = function(c)
-        if c == '' then c = channel end
         local pos = minetest.localplayer:get_pos()
         local x = math.floor(pos.x)
         local y = math.floor(pos.y)
         local z = math.floor(pos.z)
         local msg = "Current Position: " .. x .. ", " .. y .. ", " .. z .. "."
-        if c == main_channel then
-            minetest.send_chat_message(msg)
-            return
+        return chat_channels.send_message(msg, c)
+    end
+})
+
+minetest.register_chatcommand('strip_colours', {
+    params = "",
+    description = "Toggles the stripping of coloured chat.",
+    func = function(c)
+        if strip_colours then
+            strip_colours = false
+        else
+            strip_colours = true
         end
-        local players = get_channel_users(c)
-        if not players then return false, "The channel does not exist!" end
-        for p = 1, #players do
-            if connected_players[players[p]] then
-                messages_sent = messages_sent + 1
-                minetest.run_server_chatcommand('msg', players[p] .. ' -' .. c ..
-                    '- ' .. msg)
-            end
-        end
-        if messages_sent == 0 then
-            return false, "The channel is empty!"
-        end
+        storage:set_string("strip_colours", strip_colours and "yes" or "")
+        return true, "Done! Colours are " .. (strip_colours and "now" or "not")
+            .. " being stripped from chat messages."
     end
 })
 
