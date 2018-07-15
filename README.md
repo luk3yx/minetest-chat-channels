@@ -22,6 +22,7 @@ The following channel prefixes exist:
 The following special channels exist:
 
  - `#main`: Normal chat without the CSM.
+ - `@`: A "local echo" channel, messages in this channel are locally displayed.
  - `@[off]`: Prefixes messages with `[off]`, displayed in chat as `[off]`.
 
 ## Added commands

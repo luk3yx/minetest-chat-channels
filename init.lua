@@ -144,7 +144,7 @@ minetest.register_on_sending_chat_messages(function(msg)
             if cmdprefix ~= '#' or channels[msg:sub(2)] or msg == main_channel
               then
                 local players = chat_channels.get_channel_users(msg)
-                if players then
+                if players and msg ~= '@' then
                     local empty = true
                     for p = 1, #players do
                         if connected_players[players[p]] then
