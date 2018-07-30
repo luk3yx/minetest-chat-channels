@@ -109,7 +109,8 @@ chat_channels.send_message = function(msg, c)
     elseif c:sub(1, 2) == '@/' then
         minetest.run_server_chatcommand(c:sub(3), msg)
         if c == '@/s' then
-            minetest.display_chat_message('-' .. c .. '- ' .. msg)
+            minetest.display_chat_message('-' .. main_channel .. '- <' ..
+                localplayer .. '> (s) ' .. msg)
         end
         return true, 'Message sent!'
     elseif prefix == '#' and not channels[c:sub(2)] then
