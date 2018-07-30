@@ -106,6 +106,11 @@ chat_channels.send_message = function(msg, c)
         show_main_channel = true
         minetest.send_chat_message('[off] ' .. msg)
         return true, 'Message sent!'
+    elseif c:sub(1, 2) == '@/' then
+        minetest.run_server_chatcommand(c:sub(3), msg)
+        if c == '@/s' then
+            minetest.display_chat_message('-' .. c .. '- ' .. msg)
+        end
     elseif prefix == '#' and not channels[c:sub(2)] then
         if c == channel then channel = '@' end
         return false, 'The channel ' .. c .. ' does not exist!'
@@ -144,7 +149,7 @@ minetest.register_on_sending_chat_messages(function(msg)
             if cmdprefix ~= '#' or channels[msg:sub(2)] or msg == main_channel
               then
                 local players = chat_channels.get_channel_users(msg)
-                if players and msg ~= '@' then
+                if players and msg ~= '@' and msg:sub(1, 2) ~= '@/' then
                     local empty = true
                     for p = 1, #players do
                         if connected_players[players[p]] then
@@ -392,7 +397,8 @@ minetest.register_chatcommand('toggle_' .. main_channel:sub(2), {
             show_main_channel = true
             return true, "You will now start to receive messages from "
                 .. main_channel .. "."
-        elseif channel == main_channel or channel == '@[off]' then
+        elseif channel == main_channel or channel == '@[off]' or
+          channel:sub(1, 2) == '@/' then
             return false, "You are currently in " .. main_channel
                 .. "! Please change channels first."
         else

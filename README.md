@@ -14,6 +14,7 @@ Chat channels are created automatically when adding the first user and deleted
 The following channel prefixes exist:
 
  - `@`: A PM. This will PM the user after the `@`.
+ - `@/`: A chatcommand. This will run the chatcommand after the `@`.
  - `#`: A channel. This is just a group PM prefixed with the channel name. If
    a user in the channel uses chat_channels and has you in a channel with the
    same name, the message will display as a chat message in the channel.
