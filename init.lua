@@ -111,6 +111,7 @@ chat_channels.send_message = function(msg, c)
         if c == '@/s' then
             minetest.display_chat_message('-' .. c .. '- ' .. msg)
         end
+        return true, 'Message sent!'
     elseif prefix == '#' and not channels[c:sub(2)] then
         if c == channel then channel = '@' end
         return false, 'The channel ' .. c .. ' does not exist!'
