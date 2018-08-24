@@ -271,9 +271,11 @@ minetest.register_on_receiving_chat_messages(function(msg)
         local s, e = victim:find(' ')
         local victim = victim:sub(1, s - 1)
         connected_players[victim] = nil
-    elseif m:match('^# Server: version=[^{]+, clients={[^}]*}$') then
+    elseif m:match('^# Server: version=[^{]+, clients={[^}]*}') then
         local s, e = m:find('{')
-        local list = m:sub(s + 1, #m - 1)
+        local list = m:sub(s + 1, #m)
+        local s, e = list:find('}')
+        local list = list:sub(1, s - 1)
         connected_players = {}
         for player in string.gmatch(list, "[^(, )]*") do
             if #player > 0 then
