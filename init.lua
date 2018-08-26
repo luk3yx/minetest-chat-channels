@@ -90,10 +90,6 @@ chat_channels.send_message = function(msg, c)
     prefix = c:sub(1, 1)
     if prefix ~= '#' and prefix ~= '@' then
         return false, 'Channels must start in either # or @.'
-    elseif c == main_channel then
-        show_main_channel = true
-        minetest.send_chat_message(msg)
-        return true, 'Message sent!'
     elseif c == '@' then
         minetest.display_chat_message('-!- <' .. localplayer .. '> ' .. msg)
         return true, 'Message sent!'
@@ -102,6 +98,10 @@ chat_channels.send_message = function(msg, c)
         status_sent = status_sent + 1
         return false, 'You cannot use chat while cloaked. '
             .. 'Please use /uncloak if you want to use chat.'
+    elseif c == main_channel then
+        show_main_channel = true
+        minetest.send_chat_message(msg)
+        return true, 'Message sent!'
     elseif c == '@[off]' then
         show_main_channel = true
         minetest.send_chat_message('[off] ' .. msg)
