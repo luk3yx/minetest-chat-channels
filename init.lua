@@ -76,7 +76,17 @@ chat_channels.get_channel_users = function(c)
             return false
         end
     elseif prefix == '@' then
-        if not connected_players[name] then return {} end
+        if not connected_players[name] then
+            local empty           = true
+            local visible_players = minetest.get_player_names()
+            for _, player in ipairs(visible_players) do
+                if player == name then
+                    empty = false
+                    break
+                end
+            end
+            if empty then return {} end
+        end
         return {name}
     else
         show_main_channel = true
@@ -152,9 +162,11 @@ minetest.register_on_sending_chat_messages(function(msg)
               then
                 local players = chat_channels.get_channel_users(msg)
                 if players and msg ~= '@' and msg:sub(1, 2) ~= '@/' then
-                    local empty = true
+                    local empty           = true
+                    local visible_players = minetest.get_player_names()
                     for p = 1, #players do
-                        if connected_players[players[p]] then
+                        if connected_players[players[p]]
+                          or visible_players[players[p]] then
                             empty = false
                             break
                         end
