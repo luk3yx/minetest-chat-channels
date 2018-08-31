@@ -14,6 +14,7 @@ local status_sent = 0
 local buffer = ''
 local localplayer = '[you]'
 local show_main_channel = true
+local initial_status = true
 local strip_colours
 if storage:get_string('strip_colours') == 'yes' then
     strip_colours = true
@@ -221,7 +222,7 @@ minetest.register_on_receiving_chat_messages(function(msg)
     local m = minetest.strip_colors(msg)
     if strip_colours then msg = m end
     if m == 'Message sent.' or m:match('^The player .* is not online.$')
-      then
+      or m:match('^Your PM has been sent to') then
         if messages_sent > 0 then
           messages_sent = messages_sent - 1
           if messages_sent == 0 and #buffer > 0 then
@@ -293,6 +294,10 @@ minetest.register_on_receiving_chat_messages(function(msg)
             if #player > 0 then
                 connected_players[player] = true
             end
+        end
+        if initial_status and localplayer ~= '[you]' then
+            initial_status = nil
+            connected_players[localplayer] = true
         end
         if status_sent > 0 then
             status_sent = status_sent - 1
