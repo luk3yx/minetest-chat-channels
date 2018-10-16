@@ -118,7 +118,7 @@ chat_channels.send_message = function(msg, c)
         minetest.send_chat_message('[off] ' .. msg)
         return true, 'Message sent!'
     elseif c:sub(1, 2) == '@/' then
-        minetest.run_server_chatcommand(c:sub(3), msg)
+        minetest.run_server_chatcommand(c:sub(3):gsub('%.', ' '), msg)
         if c == '@/s' then
             minetest.display_chat_message('-' .. main_channel .. '- <' ..
                 localplayer .. '> (s) ' .. msg)
@@ -137,7 +137,7 @@ chat_channels.send_message = function(msg, c)
                 '- ' .. msg)
         end
     end
-    
+
     if messages_sent > 0 then
         if #buffer > 0 then buffer = buffer .. '\n' end
         buffer = buffer .. '-' .. c .. '- <' .. localplayer .. '> ' .. msg
@@ -179,7 +179,7 @@ minetest.register_on_sending_chat_messages(function(msg)
                     end
                 end
                 channel = msg
-                if channel == main_channel then 
+                if channel == main_channel then
                     show_main_channel = true
                 end
                 minetest.display_chat_message('You have changed chat channels to '
@@ -266,7 +266,7 @@ minetest.register_on_receiving_chat_messages(function(msg)
         local user = m:sub(9)
         local s, e = user:find(': ')
         local user = user:sub(1, s - 1)
-        
+
         if chat_channels.player_in_channel(user, chan) then
             minetest.display_chat_message('-#' .. chan .. '- <' .. user ..
                 '> ' .. text)
@@ -304,7 +304,7 @@ minetest.register_on_receiving_chat_messages(function(msg)
             return true
         end
     end
-    
+
     return chat_channels.display_without_colours(msg)
 end)
 
