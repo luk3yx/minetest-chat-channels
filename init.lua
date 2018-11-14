@@ -218,9 +218,15 @@ chat_channels.display_without_colours = function(msg)
     end
 end
 
+local strip_newlines = function(msg)
+    local msg, c = msg:gsub('\n', '\n --- ')
+    return msg
+end
+
 minetest.register_on_receiving_chat_messages(function(msg)
     local m = minetest.strip_colors(msg)
     if strip_colours then msg = m end
+    msg = strip_newlines(msg)
     if m == 'Message sent.' or m:match('^The player .* is not online.$')
       or m:match('^Your PM has been sent to') then
         if messages_sent > 0 then
@@ -305,7 +311,7 @@ minetest.register_on_receiving_chat_messages(function(msg)
         end
     end
 
-    return chat_channels.display_without_colours(msg)
+    return chat_channels.display_without_colours(m)
 end)
 
 minetest.register_chatcommand('add_to_channel', {
@@ -494,18 +500,3 @@ if true then
 
     minetest.register_chatcommand('strip_colors',  def)
 end
-
--- Override .list_players to make it display all players, not just players
---   visible to the client.
-minetest.override_chatcommand('list_players', {
-    func = function()
-        local p = {localplayer}
-        for player, _ in pairs(connected_players) do
-            if player ~= localplayer and _ then
-                table.insert(p, player)
-            end
-        end
-        table.sort(p)
-        return true, "Online players: " .. table.concat(p, ', ')
-    end
-})
