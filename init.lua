@@ -29,6 +29,22 @@ end
 
 if not channels then channels = {} end
 
+
+
+-- Support older versions of MT.
+local function depluralify_register(n)
+    n = 'register_on_' .. n
+    if not minetest[n] then
+        minetest[n] = minetest[n .. 's']
+    end
+end
+
+depluralify_register('sending_chat_message')
+depluralify_register('receiving_chat_message')
+
+depluralify_register = nil
+
+-- Get the localplayer
 minetest.register_on_connect(function()
     localplayer = minetest.localplayer:get_name()
     if localplayer == 'singleplayer' then
@@ -148,7 +164,7 @@ chat_channels.send_message = function(msg, c)
     return true, 'Message sent!'
 end
 
-minetest.register_on_sending_chat_messages(function(msg)
+minetest.register_on_sending_chat_message(function(msg)
     local cmdprefix = msg:sub(1, 1)
     local c = channel
     if cmdprefix == '/' or cmdprefix == '.' then
@@ -223,7 +239,8 @@ local strip_newlines = function(msg)
     return msg
 end
 
-minetest.register_on_receiving_chat_messages(function(msg)
+
+minetest.register_on_receiving_chat_message(function(msg)
     local m = minetest.strip_colors(msg)
     if strip_colours then msg = m end
     msg = strip_newlines(msg)
