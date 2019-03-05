@@ -44,6 +44,13 @@ depluralify_register('receiving_chat_message')
 
 depluralify_register = nil
 
+-- Add register_on_connect in 5.0.0
+if not minetest.register_on_connect then
+    function minetest.register_on_connect(func) return func() end
+    minetest.display_chat_message('WARNING: Chat channels may not work with '..
+        'Minetest 5.0.0 if the server disallows CSMs!')
+end
+
 -- Get the localplayer
 minetest.register_on_connect(function()
     localplayer = minetest.localplayer:get_name()
