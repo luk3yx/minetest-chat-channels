@@ -46,7 +46,28 @@ depluralify_register = nil
 
 -- Add register_on_connect in 5.0.0
 if not minetest.register_on_connect then
-    function minetest.register_on_connect(func) return func() end
+    local connected   = false
+    local on_connects = {}
+
+    -- A very hacky workaround
+    local function check_for_connection()
+        if minetest.localplayer then
+            connected = true
+            while #on_connects > 0 do
+                on_connects[#on_connects]()
+                on_connects[#on_connects] = nil
+            end
+        else
+            minetest.after(0, check_for_connection)
+        end
+    end
+    check_for_connection()
+
+    -- Let other CSMs take advantage of these hacks
+    function minetest.register_on_connect(func)
+        if connected then return func() end
+        on_connects[#on_connects + 1] = func
+    end
     minetest.display_chat_message('WARNING: Chat channels may not work with '..
         'Minetest 5.0.0 if the server disallows CSMs!')
 end
