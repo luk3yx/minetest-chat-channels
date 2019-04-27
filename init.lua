@@ -124,10 +124,12 @@ chat_channels.get_channel_users = function(c)
         if not connected_players[name] then
             local empty           = true
             local visible_players = minetest.get_player_names()
-            for _, player in ipairs(visible_players) do
-                if player == name then
-                    empty = false
-                    break
+            if visible_players then
+                for _, player in ipairs(visible_players) do
+                    if player == name then
+                        empty = false
+                        break
+                    end
                 end
             end
             if empty then return {} end
