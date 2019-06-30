@@ -207,8 +207,8 @@ minetest.register_on_sending_chat_message(function(msg)
                     local empty           = true
                     local visible_players = minetest.get_player_names()
                     for p = 1, #players do
-                        if connected_players[players[p]]
-                          or visible_players[players[p]] then
+                        if connected_players[players[p]] or (visible_players
+                                and visible_players[players[p]]) then
                             empty = false
                             break
                         end
